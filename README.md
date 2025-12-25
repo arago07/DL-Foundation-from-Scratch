@@ -26,6 +26,6 @@ Even with 50,000 samples, the data remains sparse in the 3,072-dimensional space
 * **Observation:** The model often misclassifies images based on dominant background colors rather than object shapes.
 * **Analysis:** L2 distance calculates the sum of independent pixel differences. It is sensitive to **global color distributions** (e.g., green background) but fails to capture **local semantic features** (e.g., edges, shapes).
 * **Conclusion:** Pure data scaling cannot overcome the structural limitations of pixel-based distance metrics. This necessitates the use of feature-extraction-based models like Linear Classifiers or CNNs.
-![Graph](images/knn_sample_is_5000.png)
-![Graph](images/knn_sample_is_50000.png)
-![Graph](images/ex_log.png)
+![Graph](images/k-NN/knn_sample_is_5000.png)
+![Graph](images/k-NN/knn_sample_is_50000.png)
+![Graph](images/k-NN/ex_log.png)
