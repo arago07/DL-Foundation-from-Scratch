@@ -29,3 +29,26 @@ Even with 50,000 samples, the data remains sparse in the 3,072-dimensional space
 ![Graph](images/k-NN/knn_sample_is_5000.png)
 ![Graph](images/k-NN/knn_sample_is_50000.png)
 ![Graph](images/k-NN/ex_log.png)
+
+## 2. Linear Classifier (SVM) Implementation
+Implemented a Multiclass SVM (Hinge Loss) classifier to overcome the memory and prediction speed limitations of k-NN.
+
+* **Parametric Approach:** Transitioned from memory-based (k-NN) to model-based learning ($f(x, W) = Wx + b$), compressing the knowledge of the entire dataset into a weight matrix $W$.
+* **Fully Vectorized Loss:** Implemented the SVM loss function without explicit loops, utilizing NumPy broadcasting and advanced indexing for massive performance gains.
+* **Modules:**
+    * `linear_classifier.py`: Implements forward pass (score calculation) and vectorized loss computation.
+
+---
+
+## 🔬 Experiment & Analysis: Initial Loss Verification
+### Context & Observation
+Verified the correctness of the vectorized implementation by analyzing the initial loss value with unoptimized random weights.
+* **Setup:** Initialized $W$ using standard normal distribution (`np.random.randn`) scaled by $0.01$. Input images were scaled to $[0, 1]$.
+* **Result:** Calculated Initial Loss $\approx 338.4$ (on $N=50,000$).
+
+### Key Insights
+**1. Validation of Vectorization**
+The calculation for 50,000 images was completed almost instantly. The resulting loss value (~338) aligns with the expected theoretical range for unnormalized random weights, confirming that the broadcasting and masking logic works correctly across the entire batch.
+
+**2. The Need for Optimization**
+Unlike k-NN, where performance is fixed by the dataset, this high loss value serves as the baseline for learning. The quantitative loss metric proves that the current random model is failing to classify correctly, setting the stage for implementing **Gradient Descent** to minimize this loss.
