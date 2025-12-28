@@ -52,3 +52,31 @@ The calculation for 50,000 images was completed almost instantly. The resulting 
 
 **2. The Need for Optimization**
 Unlike k-NN, where performance is fixed by the dataset, this high loss value serves as the baseline for learning. The quantitative loss metric proves that the current random model is failing to classify correctly, setting the stage for implementing **Gradient Descent** to minimize this loss.
+
+## 3. Optimization & Training
+Implemented the core training logic to minimize the SVM Loss using Gradient Descent.
+
+* **Analytic Gradient:** Derived and implemented the gradient of the SVM loss function ($\nabla_W L$) using fully vectorized NumPy operations, avoiding inefficient numerical differentiation.
+* **Stochastic Gradient Descent (SGD):** Transformed the training loop from Batch Gradient Descent (using all 50k images) to SGD (Mini-batch size: 200), achieving massive speed improvements.
+* **Hyperparameter Tuning:** Experimented with Learning Rate and Batch Size to stabilize training.
+
+---
+
+## 🔬 Experiment Log: Overcoming Challenges
+### 1. The "Exploding Gradient" Incident
+* **Observation:** During the first training attempt, the Loss skyrocketed from **321** to **71,047** within 10 iterations (Divergence).
+* **Root Cause Analysis:**
+    * The input data was unscaled ($0 \sim 255$), resulting in large score values.
+    * The large scores caused massive gradients, and combined with the learning rate, the weights updated too aggressively ("overshooting" the minima).
+* **Solution:**
+    * **Data Preprocessing:** Applied Normalization (`X_train /= 255.0`) to scale pixel values between $[0, 1]$.
+    * **Type Casting:** Converted data to `float32` before division to prevent type mismatch errors.
+
+### 2. Successful Convergence & SGD Analysis
+* **Result after Fix:**
+    * **Initial Loss:** Dropped to **10.6** (Close to the theoretical expected loss for random weights: $\approx 9.0$).
+    * **Training Dynamics:** Loss decreased steadily without divergence.
+* **SGD Efficiency:**
+    * Switching to SGD (Batch size 200) accelerated the training loop by approx. **250x** compared to Batch GD.
+    * **Final Loss:** Reached **~7.9** after 1,500 iterations.
+    * **Fluctuation:** Observed the characteristic "noisy" descent of SGD (e.g., Loss jumping 8.7 $\to$ 9.3 $\to$ 7.9), confirming the stochastic nature of sampling.
