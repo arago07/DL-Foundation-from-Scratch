@@ -80,3 +80,12 @@ Implemented the core training logic to minimize the SVM Loss using Gradient Desc
     * Switching to SGD (Batch size 200) accelerated the training loop by approx. **250x** compared to Batch GD.
     * **Final Loss:** Reached **~7.9** after 1,500 iterations.
     * **Fluctuation:** Observed the characteristic "noisy" descent of SGD (e.g., Loss jumping 8.7 $\to$ 9.3 $\to$ 7.9), confirming the stochastic nature of sampling.
+
+## 4. Final Evaluation & Visualization
+Successfully evaluated the best SVM model on the test set and visualized the learned templates.
+
+* **Hyperparameter Tuning:** Searched through multiple `learning_rates` and `reg_strengths`.
+    * **Best Combination:** `lr: 0.001`, `reg: 0.25`
+    * **Best Validation Accuracy:** 36.20%
+* **Final Test Performance:** Achieved **33.66%** Accuracy on the CIFAR-10 test set.
+* **Weight Visualization:** Observed that the model learns "spatial templates" for each class (e.g., green blobs for frogs, blue backgrounds for ships).

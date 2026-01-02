@@ -1,5 +1,6 @@
 import numpy as np
 from tensorflow.keras.datasets import cifar10
+import matplotlib.pyplot as plt
 
 # -------------------------------------
 # 1. 데이터 전처리 및 점수 계산
@@ -90,7 +91,9 @@ print(f"dW의 첫 5개 값: {dW.flatten()[:5]}")
 # 6. Optimization: 학습 루프 추가
 # ------------------------------------
 
-learning_rate = 1e-5 # 0.00001
+# learning_rate = 1e-5 # 0.00001 <- 속도를 위해 증가
+learning_rate = 1e-3
+reg = 0.5 # 규제 강도
 """
 print("\n학습 시작...")
 for i in range(101): # 100번 반족
@@ -145,43 +148,95 @@ Loss가 점점 감소했다! (10.6385 -> 8.8259)
 """
 
 # -------------------------------------
-# 7. Optimization: SGD 적용
+# 7. Optimization
 # -------------------------------------
 batch_size = 200
 num_iters = 1500 # 반복 횟수
+# 검증 데이터 분리
+num_validation = 1000
+X_val = X[:num_validation]
+y_val = y[:num_validation]
+X_train_subset = X[num_validation:]
+y_train_subset = y[num_validation:]
 
-for i in range(num_iters):
-    # mini batch 생성
-    batch_indices = np.random.choice(N, batch_size)
-    X_batch = X[batch_indices]
-    y_batch = y[batch_indices]
+# 후보군 설정
+learning_rates = [1e-3, 5e-4]
+reg_strengths = [0.1, 0.25, 0.5]
 
-    # X 대신 X batch를 삽입 후 계산
-    # 점수 계산
-    scores = X_batch.dot(W) + b
-    
-    # loss, margin 계산
-    correct_class_scores = scores[np.arange(batch_size), y_batch].reshape(batch_size,1)
-    margins = np.maximum(0, scores - correct_class_scores + 1)
-    margins[np.arange(batch_size), y_batch] = 0
-    loss = np.sum(margins) / batch_size
+results = {}
+best_val = -1
+best_W, best_b = None, None
 
-    # gradient 계산
-    binary = (margins > 0).astype(float)
-    row_sum = np.sum(binary, axis=1)
-    binary[np.arange(batch_size), y_batch] = - row_sum
-    dW = X_batch.T.dot(binary) / batch_size
-    db = np.sum(binary, axis=0) # b에 대한 미분 추가
+print("\n하이퍼파라미터 튜닝 시작")
 
-    # parameter update
-    W -= learning_rate * dW
-    b -= learning_rate * db
+def predict(X, W, b):
+    # 학습된 가중치를 사용해 입력 데이터의 클래스 예측
 
-    # 100번마다 출력
-    if i % 100 == 0:
-        print(f"Iteration {i}: Loss는 {loss:.4f}")
+    # 점수 계산(N, C)
+    scores = X.dot(W) + b
+    # 가장 높은 점수를 가진 인덱스 선택
+    y_pred = np.argmax(scores, axis=1) # 가로 방향
+
+    return y_pred
+
+for lr in learning_rates:
+    for rs in reg_strengths:
+        # 매 실험마다 가중치 초기화
+        cur_W = np.random.randn(D,C) * 0.01
+        cur_b = np.random.randn(1, C)
+
+        for i in range(num_iters):
+            # mini batch 생성
+            batch_indices = np.random.choice(N, batch_size)
+            X_batch = X[batch_indices]
+            y_batch = y[batch_indices]
+
+            # X 대신 X batch를 삽입 후 계산
+            # 점수 계산
+            scores = X_batch.dot(cur_W) + cur_b
+            
+            # loss, margin 계산
+            correct_class_scores = scores[np.arange(batch_size), y_batch].reshape(batch_size,1)
+            margins = np.maximum(0, scores - correct_class_scores + 1)
+            margins[np.arange(batch_size), y_batch] = 0
+            
+            # rs(현재 루프의 규제강도) 사용
+            data_loss = np.sum(margins) / batch_size
+            reg_loss = 0.5 * reg * np.sum(cur_W * cur_W) # L2 규제: 0.5 * lambda * (W^2)
+            loss = data_loss + reg_loss
+
+            # gradient 계산
+            binary = (margins > 0).astype(float)
+            row_sum = np.sum(binary, axis=1)
+            binary[np.arange(batch_size), y_batch] = - row_sum
+            dW = X_batch.T.dot(binary) / batch_size
+            dW += rs * cur_W # L2 규제의 미분값: lambda * W 을 더함
+            db = np.sum(binary, axis=0) / batch_size # b에 대한 미분 추가
+
+            # parameter update
+            cur_W -=lr * dW
+            cur_b -= lr * db
+
+            # 500번마다 출력 <- 최고 성능의 하이퍼파라미터 찾아낼 때 100번마다는 너무 길어짐. 500으로 대체
+            if i % 500 == 0:
+                # 학습된 W, b로 예측
+                y_train_pred = predict(X_batch, W, b)
+                train_acc = np.mean(y_train_pred == y_batch) * 100
+                
+                print(f"Iteration {i}: Loss는 {loss:.4f}, Train Acc: {train_acc:2f}%")
+        val_pred = predict(X_val, cur_W, cur_b)
+        val_acc = np.mean(val_pred == y_val) * 100
+
+        print(f"lr {lr} / reg {rs} -> val_acc: {val_acc:2f}%")
+
+        if val_acc > best_val:
+            best_val = val_acc
+            best_W, best_b = cur_W.copy(), cur_b.copy() # copy()를 사용하여 주소가 아닌 값 자체 저장
+
+print(f"\n최고 검증 정확도: {best_val:2f}%")
+
 """
-최종 optimization 후 출력된 결과
+1차 optimization 후 출력된 결과
 
 Iteration 0: Loss는 12.8662
 Iteration 100: Loss는 11.0739
@@ -191,11 +246,75 @@ Iteration 400: Loss는 8.8116
 Iteration 500: Loss는 8.6338
 Iteration 600: Loss는 8.4872
 Iteration 700: Loss는 8.0242
-Iteration 800: Loss는 8.6124
+Iteration 800: Loss는 8.6124 <- fluctuation
 Iteration 900: Loss는 8.1947
-Iteration 1000: Loss는 8.2904
+Iteration 1000: Loss는 8.2904 <- fluctuation
 Iteration 1100: Loss는 8.1228
 Iteration 1200: Loss는 7.7424
 Iteration 1300: Loss는 7.6628
-Iteration 1400: Loss는 7.9045
+Iteration 1400: Loss는 7.9045 <- fluctuation
 """
+"""
+하이퍼파라미터 튜닝 후 출력된 결과
+
+Iteration 0: Loss는 12.6111, Train Acc: 9.500000%
+Iteration 500: Loss는 5.7997, Train Acc: 11.000000%
+Iteration 1000: Loss는 5.3568, Train Acc: 12.500000%
+lr 0.001 / reg 0.1 -> val_acc: 36.600000%
+Iteration 0: Loss는 11.5193, Train Acc: 11.000000%
+Iteration 500: Loss는 5.8695, Train Acc: 11.500000%
+Iteration 1000: Loss는 5.8490, Train Acc: 9.000000%
+lr 0.001 / reg 0.25 -> val_acc: 36.700000%
+Iteration 0: Loss는 11.0524, Train Acc: 13.000000%
+Iteration 500: Loss는 5.6674, Train Acc: 9.000000%
+Iteration 1000: Loss는 5.4058, Train Acc: 12.000000%
+lr 0.001 / reg 0.5 -> val_acc: 35.000000%
+Iteration 0: Loss는 11.9898, Train Acc: 10.000000%
+Iteration 500: Loss는 6.5945, Train Acc: 7.500000%
+Iteration 1000: Loss는 6.0370, Train Acc: 8.500000%
+lr 0.0005 / reg 0.1 -> val_acc: 33.200000%
+Iteration 0: Loss는 13.2100, Train Acc: 8.500000%
+Iteration 500: Loss는 6.3203, Train Acc: 13.500000%
+Iteration 1000: Loss는 6.4355, Train Acc: 11.500000%
+lr 0.0005 / reg 0.25 -> val_acc: 34.400000%
+Iteration 0: Loss는 10.3751, Train Acc: 10.500000%
+Iteration 500: Loss는 6.2143, Train Acc: 9.500000%
+Iteration 1000: Loss는 5.9625, Train Acc: 8.500000%
+lr 0.0005 / reg 0.5 -> val_acc: 33.600000%
+"""
+
+# ---------------------------------
+# 8. 시각화
+# ---------------------------------
+
+def visualize_weight(best_W):
+    classes = ['plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
+    # 가중치를 0~255 사이로 정규화 -> 이미지로 볼 수 있도록 변환
+    w_min, w_max = np.min(best_W), np.max(best_W)
+    w_img = 255.0 * (best_W.reshape(32, 32, 3, 10) - w_min) / (w_max - w_min)
+
+    plt.figure(figsize=(12, 5))
+    for i in range(10):
+        plt.subplot(2, 5, i+1) # subplot은 1부터 카운트
+        
+        # 클래스별 가중치를 이미지로 출력
+        plt.imshow(w_img[:, :, :, i].astype('uint8'))
+        plt.axis('off')
+        plt.title(classes[i])
+    plt.show()
+
+visualize_weight(best_W)
+
+# ---------------------------------
+# 9. 최종 테스트
+# ---------------------------------
+
+# 테스트 데이터도 학습 데이터처럼 전처리
+X_test_processed = x_test.reshape(x_test.shape[0], -1).astype('float32')
+X_test_processed /= 255.0
+
+test_pred = predict(X_test_processed, best_W, best_b)
+test_acc = np.mean(test_pred == y_test.flatten()) * 100
+
+print(f"\n최종 테스트 정확도(Test Accuracy): {test_acc:.2f}%")
