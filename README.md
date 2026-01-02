@@ -89,3 +89,6 @@ Successfully evaluated the best SVM model on the test set and visualized the lea
     * **Best Validation Accuracy:** 36.20%
 * **Final Test Performance:** Achieved **33.66%** Accuracy on the CIFAR-10 test set.
 * **Weight Visualization:** Observed that the model learns "spatial templates" for each class (e.g., green blobs for frogs, blue backgrounds for ships).
+* The following images represent the learned weights (templates) for each class:
+
+![SVM Weights](images/linear_classifier/svm_weights.png)
