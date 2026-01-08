@@ -1,6 +1,7 @@
 import numpy as np
 from tensorflow.keras.datasets import cifar10
 import matplotlib.pyplot as plt
+import os
 
 # -------------------------------------
 # 1. 데이터 전처리 및 점수 계산
@@ -302,9 +303,12 @@ def visualize_weight(best_W):
         plt.imshow(w_img[:, :, :, i].astype('uint8'))
         plt.axis('off')
         plt.title(classes[i])
+    save_path = "images/linear_classifier"
+    plt.savefig(f"{save_path}/svm_weights.png")
     plt.show()
 
 visualize_weight(best_W)
+
 
 # ---------------------------------
 # 9. 최종 테스트
