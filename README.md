@@ -92,3 +92,10 @@ Successfully evaluated the best SVM model on the test set and visualized the lea
 * The following images represent the learned weights (templates) for each class:
 
 ![SVM Weights](images/linear_classifier/svm_weights.png)
+
+## 5. Neural Network Visualization
+Unlike the linear classifier, the two-layer neural network learns distributed representations. The following image shows the weights ($W_1$) learned by the 50 hidden neurons:
+
+![Hidden Layer Weights](images/two_layer_net/w1_visualization.png)
+
+* **Observation:** The neurons act as various filters for edges, colors, and blobs, which are then combined in the second layer to classify the image.
