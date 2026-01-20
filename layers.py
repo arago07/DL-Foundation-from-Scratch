@@ -101,7 +101,7 @@ def max_pool_forward_naive(x, pool_param):
     HH = pool_param['pool_height']
     WW = pool_param['pool_width']
     stride = pool_param['stride']
-    N, C, H, W = x_shape
+    N, C, H, W = x.shape
 
     H_out = int(1 + (H - HH) / stride) # bias x
     W_out = int(1 + (W - WW) / stride)
@@ -120,3 +120,64 @@ def max_pool_forward_naive(x, pool_param):
                     out[n, c, i, j] = np.max(x_slice)
     cache = (x, pool_param)
     return out, cache
+
+# ----------------------------------
+# ReLU
+# ----------------------------------
+def relu_forward(x):
+    """
+    relu_forward의 Docstring
+    
+    :x(입력)에서 0보다 큰 값은 그대로, 0 이하는 0으로
+    """
+    out = np.maximum(0, x)
+    cache = x
+    return out, cache
+
+# ----------------------------------
+# Affine Forward(행렬 곱)
+# ----------------------------------
+def affine_forward(x, w, b):
+    """
+    affine_forward의 Docstring
+    
+    :param x: 입력 데이터(N, d_1, ..., d_k) -> flatten 일어남
+    :param w: 가중치(D, M)
+    :param b: 편향(M,)
+    """
+    # 1. 2차원 행렬로 flatten
+    N = x.shape[0]
+    x_reshaped = x.reshape(N, -1)
+
+    # 2. 행렬 곱셈 + bias
+    out = np.dot(x_reshaped, w) + b
+
+    cache = (x, w, b)
+    return out, cache
+
+# ------------------------------------
+# Softmax Loss(최종 점수 계산)
+# ------------------------------------
+def softmax_loss(x, y):
+    """
+    softmax_loss의 Docstring
+    
+    :param x: 예측 점수(N, C)
+    :param y: 정답 레이블(N,)
+    """
+    # 최댓값 빼기 >> 오버플로우 방지
+    shifted_logits = x - np.max(x, axis=1, keepdims=True) # 이후의 연산을 위해 행렬 모양 유지
+    Z = np.sum(np.exp(shifted_logits), axis=1, keepdims=True) # Z = 분모
+    log_probs = shifted_logits - np.log(Z) # 로그 안 나눗셈 -> (로그1) - (로그2)
+
+    # N개의 데이터에 대한 확률값 중에서 정답에 해당하는 것(y)만 골라내기
+    N = x.shape[0]
+    loss = -np.sum(log_probs[np.arange(N), y]) / N # fancy indexing
+
+    # 역전파를 위한 기울기 계산(dout)
+    probs = np.exp(log_probs)
+    dout = probs.copy() # dout = 'Derivative of Output'
+    dout[np.arange(N), y] -= 1 # 정답 클래스를 음수로 만들기 -> 이후 점수를 더 올리려는 행동을 하도록
+    dout /= N
+
+    return loss, dout
