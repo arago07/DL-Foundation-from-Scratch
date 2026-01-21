@@ -99,3 +99,32 @@ Unlike the linear classifier, the two-layer neural network learns distributed re
 ![Hidden Layer Weights](images/two_layer_net/w1_visualization.png)
 
 * **Observation:** The neurons act as various filters for edges, colors, and blobs, which are then combined in the second layer to classify the image.
+
+## 6. Convolutional Neural Network (CNN) Implementation
+Implemented a modular Convolutional Neural Network (CNN) from scratch to capture spatial hierarchies in image data, moving beyond the limitations of flat vector inputs used in Linear Classifiers and MLPs.
+
+* **Full Modular Architecture:** Implemented `Conv - ReLU - Pool - Affine - ReLU - Affine - Softmax` architecture.
+* **Manual Backpropagation:** Derived and implemented the analytic gradients for Convolution and Max Pooling layers using the Chain Rule, handling 4D tensors ($N, C, H, W$) without automatic differentiation.
+* **Modules:**
+    * `layers.py`: Contains `forward` and `backward` methods for `Conv_naive`, `MaxPool_naive`, etc.
+    * `cnn.py`: Assembles the layers into a `ThreeLayerConvNet` class.
+    * `train_overfit.py`: Script for verifying implementation integrity.
+
+---
+
+## 🔬 Experiment & Analysis: Implementation Verification
+### Context & Observation
+Before training on the full dataset, it is crucial to verify the correctness of the complex backpropagation logic (specifically dimensions and gradient flow in 4D tensors).
+* **Setup:** Trained the model on a tiny dataset ($N=5$ images) with a high learning rate ($0.1$) for 20 epochs.
+* **Hypothesis:** If the forward and backward passes are implemented correctly, the model should have enough capacity to perfectly memorize (overfit) the small dataset, driving the loss to near zero.
+* **Result:**
+    * **Initial Loss:** $\approx 2.3$ (Random guessing).
+    * **Final Loss:** $\approx 0.02$ (Perfect memorization).
+
+### Key Insights
+**1. Validation of Gradient Flow (Chain Rule)**
+The convergence to near-zero loss confirms that the gradient of the loss function is correctly flowing back through the Max Pooling (routing gradients to max indices) and Convolution layers (cross-correlating gradients with filters). If there were any dimension mismatch or mathematical error in `conv_backward`, the loss would have stagnated or exploded.
+
+**2. SGD Dynamics: The "Overshooting" Phenomenon**
+* **Observation:** During the training (Epoch 10-12), the loss temporarily spiked ($0.86 \to 1.93$) before settling down.
+* **Analysis:** This illustrates the behavior of Stochastic Gradient Descent with a high learning rate. The optimizer "overshot" the local minimum due to the large step size but successfully corrected its trajectory. This confirms that the update logic ($W \leftarrow W - \eta \cdot \nabla W$) is working robustly even under aggressive hyperparameter settings.
