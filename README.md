@@ -128,3 +128,21 @@ The convergence to near-zero loss confirms that the gradient of the loss functio
 **2. SGD Dynamics: The "Overshooting" Phenomenon**
 * **Observation:** During the training (Epoch 10-12), the loss temporarily spiked ($0.86 \to 1.93$) before settling down.
 * **Analysis:** This illustrates the behavior of Stochastic Gradient Descent with a high learning rate. The optimizer "overshot" the local minimum due to the large step size but successfully corrected its trajectory. This confirms that the update logic ($W \leftarrow W - \eta \cdot \nabla W$) is working robustly even under aggressive hyperparameter settings.
+
+## 🔬 Experiment & Analysis: Overfitting Test (Sanity Check)
+
+To verify the correctness of the implementation (especially Backpropagation), I conducted a "Sanity Check" by overfitting a small dataset ($N=5$).
+
+### 📊 Experiment 1: Conservative Learning Rate
+* **Setup:** `learning_rate = 0.01`, `epochs = 20`
+* **Observation:** The loss decreased very slowly ($2.29 \to 2.03$).
+* **Analysis:** The gradient updates were too small to converge within 20 epochs. This indicated the need for a more aggressive learning rate for this tiny dataset.
+
+### 📊 Experiment 2: Aggressive Learning Rate (Success)
+* **Setup:** `learning_rate = 0.1`, `epochs = 20`
+* **Observation:**
+    * **Overshooting:** A spike in loss occurred at Epoch 11 ($1.16$) and 12 ($2.00$), indicating the step size was large enough to jump over the local minima temporarily.
+    * **Convergence:** The optimizer successfully corrected the trajectory, driving the final loss to **0.0225**.
+* **Conclusion:** The model has sufficient capacity to memorize the dataset, confirming that the `forward` and `backward` passes are mathematically correct.
+
+![Sanity Check Graph](images/cnn/overfit_result.png)

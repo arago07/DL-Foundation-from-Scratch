@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import os
 from cnn import ThreeLayerConvNet
 
 # 1. data 준비
@@ -12,6 +14,7 @@ model = ThreeLayerConvNet(weight_scale=1e-2)
 # 3. Optimizer
 learning_rate = 0.1 # 0.01 -> 0.1
 epochs = 20 # 20번 반복 학습
+loss_history = [] # Loss 기록용 리스트
 
 print("학습 시작(초기 Loss 약 2.3 예상)")
 print("-" * 30)
@@ -20,6 +23,7 @@ print("-" * 30)
 for i in range(epochs):
     # (1) Forward, Backward
     loss, grads = model.loss(X, y)
+    loss_history.append(loss)
 
     # (2) 가중치 업데이트(SGD: Stochastic Gradient Descent)
     # W = W - learning_rate * Gradient
@@ -34,6 +38,26 @@ if loss < 0.1:
     print("Succeed")
 else:
     print("Loss가 충분히 줄어들지 않았습니다(Hint: 학습률 조절)")
+
+# ------------------------------------------
+# 그래프 그리기 및 저장
+# ------------------------------------------
+save_dir = "images/cnn"
+if not os.path.exists(save_dir):
+    os.makedirs(save_dir)
+
+plt.title('Sanity Check: Overfitting Small Data')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.plot(loss_history, 'o-', label='CNN Loss')
+
+plt.legend() # 그래프에 범례(legend) 표시
+plt.grid(True)
+
+file_path = os.path.join(save_dir, "overfit_result.png")
+plt.savefig(file_path) # image 저장
+print(f"Graph 저장 완료: {file_path}")
+plt.show()
 
 # 1차 실험 출력 결과(learning rate: 0.01)
 """
