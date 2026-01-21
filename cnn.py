@@ -77,9 +77,36 @@ class ThreeLayerConvNet:
         loss = data_loss + w_reg_loss
 
         # --------------------------------------------
-        # Backward Pass(역전파) - 아직 구현x
+        # Backward Pass(역전파)
         # --------------------------------------------
-        grads = {}
+        # 1. Softmax 뒤에서부터 거꾸로
+        # loss, dout = softmax_loss(scores, y) <- 위에서 함
+
+        # 2. Output Layer(Affine) 뒤로 가기
+        # dout이 계속 업데이트되며 앞으로 전달
+        dout, dW3, db3 = affine_backward(dout, cache_affine2)
+
+        # 3. Hidden Layer(ReLU -> Affine) 뒤로 가기
+        dout = relu_backward(dout, cache_relu2)
+        dout, dW2, db2 = affine_backward(dout, cache_affine1)
+
+        # 4. Conv Layer(Pool -> ReLU -> Conv) 뒤로 가기
+        dout = max_pool_backward_naive(dout, cache_pool)
+        dout = relu_backward(dout, cache_relu1)
+        dx, dW1, db1 = conv_backward_naive(dout, cache_conv)
+
+        # 5. Regulation(가중치 규제) 미분 추가
+        # Loss에 (+ 0.5 * reg * W^2)를 함 -> 미분 후 reg * W가 추가
+        dW1 += self.reg * W1
+        dW2 += self.reg * W2
+        dW3 += self.reg * W3
+
+        # 6. 결과를 dictionary에 담기
+        grads = {
+            'W1': dW1, 'b1': db1,
+            'W2': dW2, 'b2': db2,
+            'W3': dW3, 'b3': db3
+        }
 
         return loss, grads
     

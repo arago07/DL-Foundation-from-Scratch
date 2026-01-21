@@ -181,3 +181,135 @@ def softmax_loss(x, y):
     dout /= N
 
     return loss, dout
+
+def affine_backward(dout, cache):
+    """
+    affine_backward의 Docstring
+    
+    :param dout: 위쪽에서 흘러온 미분값(N, M)
+    :param cache: forward 때 저장해놓은 (x, w, b)
+    """
+    x, w, b = cache
+    N = x.shape[0]
+
+    # 1. db: bias의 기울기(데이터 N개에 대한 미분값을 다 더함)
+    db = np.sum(dout, axis=0)
+
+    # 2. dw: 가중치의 기울기(x^T * dout)
+    x_reshaped = x.reshape(N, -1) # x를 2차원으로 reshape 후 연산
+    dw = np.dot(x_reshaped.T, dout) # (D, N) * (N, M)
+
+    # 3. dx: 입력 데이터의 기울기(dout * w^T)
+    dx = np.dot(dout, w.T) # (N, M) * (M, D)
+    # 입력 데이터를 원래 모양(4차원 등)으로 복구
+    dx = dx.reshape(*x.shape) # unpacking
+
+    return dx, dw, db
+
+def relu_backward(dout, cache):
+    """
+    relu_backward의 Docstring
+    
+    :param dout: 위쪽에서 흘러온 미분값
+    :param cache: forward 때 저장해놓은 입력값(x)
+    """
+    x = cache
+
+    # x > 0이면 dout를 그대로 통과, x <= 0이면 0으로 변환
+    dx = dout.copy() # 원본 보존
+    dx[x <= 0] = 0
+
+    return dx
+
+def max_pool_backward_naive(dout, cache):
+    """
+    max_pool_backward_naive의 Docstring
+    
+    Forward 때 최댓값으로 뽑혔던 자리로만 기울기(dout)을 보냄
+    나머지 자리는 기울기가 0(관여하지 않았으므로)
+    """
+    x, pool_param = cache
+    N, C, H, W = x.shape
+    HH = pool_param['pool_height']
+    WW = pool_param['pool_width']
+    stride = pool_param['stride']
+
+    H_out = int(1 + (H - HH) / stride)
+    W_out = int(1 + (W - WW) / stride)
+
+    dx = np.zeros_like(x) # 입력과 같은 모양의 빈 그릇
+
+    for n in range(N):
+        for c in range(C):
+            for i in range(H_out):
+                for j in range(W_out):
+                    # 1. Forward에서의 slice 범위 다시 찾기
+                    v_start = i * stride
+                    v_end = v_start + HH
+                    h_start = j * stride
+                    h_end = h_start + WW
+
+                    # 2. 해당 구역에서 누가 최댓값(winner)이었는지 찾기
+                    x_slice = x[n, c, v_start:v_end, h_start:h_end]
+                    mask = (x_slice == np.max(x_slice)) # 최댓값 위치만 True로
+
+                    # 3. 우승자(True)에게만 기울기(dout) 전달
+                    dx[n, c, v_start:v_end, h_start:h_end] += mask * dout[n, c, i, j]
+
+    return dx
+
+def conv_backward_naive(dout, cache):
+    """
+    conv_backward_naive의 Docstring
+    
+    dx(입력 미분), dw(필터 미분), db(편향 미분) 3가지 모두 구해야 함
+    """
+    x, w, b, conv_param = cache
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+
+    N, C, H, W = x.shape
+    F, C, HH, WW = w.shape
+    N, F, H_out, W_out = dout.shape
+
+    # 1. 초기화
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+
+    # 2. db 계산
+    # (N, H_out, W_out)축 합계 -> (F,)만 남음
+    db = np.sum(dout, axis=(0, 2, 3))
+
+    # dw, dx 계산을 위해 padding
+    # forward 때 padding을 사용했으므로 미분할 때도 padding된 x가 필요
+    x_pad = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), 'constant') # (N, C, H, W)이기 때문
+    dx_pad = np.zeros_like(x_pad)
+
+    # 4. 4중 루프(Forward의 역순)
+    for n in range(N):
+        for f in range(F):
+            for i in range(H_out):
+                for j in range(W_out):
+                    # Forward 때의 좌표 다시 계산
+                    v_start = i * stride
+                    v_end = v_start + HH
+                    h_start = j * stride
+                    h_end = h_start + WW
+
+                    # dw 계산: x(입력) * dout <- chain rule
+                    x_slice = x_pad[n, :, v_start:v_end, h_start:h_end]
+                    dw[f] += x_slice * dout[n, f, i, j]
+
+                    # dx 계산: dout * w(필터) <- chain rule
+                    dx_pad[n, :, v_start:v_end, h_start:h_end] += w[f] * dout[n, f, i, j]
+    
+    # 5. padding 제거 후 데이터만 가져오기
+    # [pad:-pad] slicing
+    if pad > 0:
+        dx = dx_pad[:, :, pad:-pad, pad:-pad]
+    else:
+        dx = dx_pad
+    return dx, dw, db
+
+
