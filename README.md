@@ -146,3 +146,31 @@ To verify the correctness of the implementation (especially Backpropagation), I 
 * **Conclusion:** The model has sufficient capacity to memorize the dataset, confirming that the `forward` and `backward` passes are mathematically correct.
 
 ![Sanity Check Graph](images/cnn/overfit_result.png)
+
+## 7. CNN Training & Feature Visualization
+Scaled up the experiment from the sanity check to learning actual visual features from the CIFAR-10 dataset using the implemented CNN architecture.
+
+* **Data Pipeline:** Implemented efficient data loading for a subset ($N=5,000$) to optimize for CPU-based training.
+    * **Preprocessing:** Applied Mean Subtraction and dimension transposition (`HWC` $\to$ `CHW`) to align with the custom `im2col` implementation.
+* **Training Loop:** Implemented the full SGD loop (`cnn_cifar10.py`) with real-time loss logging and visualization logic.
+
+---
+
+## 🔬 Experiment & Analysis: Visualizing Learned Filters
+### Context & Setup
+The goal was to verify if the implementation could learn meaningful visual representations (spatially organized features) rather than just memorizing pixel values.
+* **Setup:** Trained on 5,000 CIFAR-10 images using `batch_size=50`.
+* **Tuning:** Initially, with `lr=0.001`, the loss stagnated at **2.302** (Random Guessing). Increasing the learning rate to `0.01` triggered immediate convergence.
+
+### Key Insights
+**1. Emergence of Visual Patterns (Gabor Filters)**
+Upon visualization, the first-layer weights ($W_1$) transformed from random noise into distinct, smooth patterns.
+* **Color Blobs:** Specific filters (e.g., #17 Green, #16 Pink) learned to activate on dominant background colors.
+* **Edge Detectors:** Other filters (e.g., #5, #14) evolved into "Edge Detectors" capable of recognizing horizontal or diagonal lines.
+* **Conclusion:** This visually proves that the **Convolution operation** and **Backpropagation** are correctly extracting low-level features (edges, colors) from raw pixels, which is the fundamental basis of Deep Learning vision models.
+
+**2. Loss Dynamics & SGD Fluctuation**
+* **Observation:** The loss dropped significantly to **~1.57** but showed high fluctuation ($1.6 \leftrightarrow 2.0$) in later iterations.
+* **Analysis:** This behavior is characteristic of Stochastic Gradient Descent with a small batch size ($50$) and an aggressive learning rate. The model successfully escaped the initial plateau and converged to a meaningful state, proving the robustness of the update rule even with limited data.
+
+![CNN Filters](images/cnn/filter_visualization.png)
