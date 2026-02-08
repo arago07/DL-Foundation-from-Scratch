@@ -174,3 +174,65 @@ Upon visualization, the first-layer weights ($W_1$) transformed from random nois
 * **Analysis:** This behavior is characteristic of Stochastic Gradient Descent with a small batch size ($50$) and an aggressive learning rate. The model successfully escaped the initial plateau and converged to a meaningful state, proving the robustness of the update rule even with limited data.
 
 ![CNN Filters](images/cnn/filter_visualization.png)
+
+---
+
+# Part 2: PyTorch Practice (Deep Learning with Frameworks)
+This section documents the transition from manual NumPy implementations to efficient deep learning workflows using **PyTorch**, focusing on hardware acceleration and automatic differentiation for Vision AI research.
+
+## 8. Tensor Fundamentals & Hardware Acceleration (Day 1)
+Explored the core data structure of PyTorch and configured the environment for high-performance computing on Apple Silicon.
+
+* **Tensor Manipulation:** Mastered tensor creation, indexing, and broadcasting, which are the building blocks for handling high-dimensional image data.
+* **Device Management:** Implemented logic to detect and utilize **MPS (Metal Performance Shaders)**, enabling GPU acceleration on Mac devices.
+* **Interoperability:** Leveraged the bridge between NumPy and PyTorch to maintain flexibility in data preprocessing.
+
+---
+
+## 9. Autograd: The Engine of Deep Learning (Day 2)
+Deep-dived into the mechanics of **Automatic Differentiation**, the core technology that replaces manual gradient derivations in Stanford CS231n theory.
+
+* **Computational Graphs:** Understood how PyTorch dynamically builds graphs to track operations on tensors with `requires_grad=True`.
+* **The Backward Mechanism:** Practiced triggering the chain rule via `.backward()` to automatically compute gradients for complex functions.
+* **Gradient Accumulation:** Identified that PyTorch accumulates gradients by default, necessitating the use of `optimizer.zero_grad()` to prevent interference between training iterations.
+
+---
+
+## 10. Linear Regression & Standard Training Loop (Day 3)
+Integrated the fundamentals into a complete end-to-end training pipeline for a simple regression task ($y = 2x + 1$).
+
+* **Standardized Workflow:** Established the 5-step routine: `Forward -> Loss -> Zero_grad -> Backward -> Step`.
+* **Directory:** `pytorch_practice/day3_linear_regression.py`
+
+---
+
+## 🔬 Experiment & Analysis: Learning Rate Sensitivity
+### Context & Setup
+Investigated the impact of the **Learning Rate ($\eta$)** on the convergence of a linear model with Gaussian noise. This experiment highlights the critical role of optimizer hyperparameters in model stability.
+* **Epochs:** 200
+* **Optimizer:** SGD
+* **Loss Function:** MSELoss
+
+### Key Insights
+
+**1. Gradient Explosion & Divergence (The "NaN" Problem)**
+* **Setup:** `lr = 0.8`
+* **Observation:** Loss skyrocketed to $10^{33}$ within 10 epochs and eventually hit `inf` and `nan`.
+* **Analysis:** The step size was too aggressive, causing the optimizer to overshoot the global minimum and diverge. This proves that without proper LR scaling, even a convex problem can fail to initialize.
+
+**2. Slow Convergence (The "Turtle" Problem)**
+* **Setup:** `lr = 0.0001`
+* **Observation:** The loss decreased at an imperceptible rate. After 200 epochs, the weight reached only ~1.4 (Target: 2.0).
+* **Analysis:** While stable, the updates were too small to reach the optimal solution.
+
+**3. Optimal Convergence**
+* **Setup:** `lr = 0.01`
+* **Observation:** The model successfully converged to $w \approx 1.96, b \approx 1.03$, effectively filtering out the synthetic noise to find the underlying trend.
+
+### 📊 Comparative Visualization
+| **Explosion (lr=0.8)** | **Slow (lr=0.0001)** | **Optimal (lr=0.01)** |
+| :---: | :---: | :---: |
+| ![High LR](images/pytorch_practice/linear_regression_result_high.png) | ![Low LR](images/pytorch_practice/linear_regression_result_low.png) | ![Optimal LR](images/pytorch_practice/linear_regression_result_moderate.png) |
+*(Note: High LR results in no fitted line due to NaN coordinates in the weight/bias tensors.)*
+
+---
