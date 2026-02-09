@@ -236,3 +236,37 @@ Investigated the impact of the **Learning Rate ($\eta$)** on the convergence of 
 *(Note: High LR results in no fitted line due to NaN coordinates in the weight/bias tensors.)*
 
 ---
+
+## 11. Multi-variable Linear Regression (Day 4)
+Expanded the linear model to handle multiple input features, transitioning from scalar-based logic to **Vectorized Matrix Operations** using PyTorch.
+
+* **High-Dimensional Mapping:** Implemented a model to predict a single target value from three independent features ($$x_1, x_2, x_3$$), following the hypothesis: $$y = w_1x_1 + w_2x_2 + w_3x_3 + b$$.
+* **Vectorization with `matmul`:** Replaced manual summation with `torch.matmul(X, W)` to process 100 samples simultaneously, ensuring high computational efficiency on Apple Silicon (MPS).
+* **Internal Weight Logic:** Analyzed `nn.Linear`'s storage format ($$out \times in$$) and verified that PyTorch internally transposes weights ($$W^T$$) to execute $$y = XW^T + b$$.
+* **Modules:**
+    * `pytorch_practice/day4_multivariable.py`: Full implementation of multi-variable training loop and weight analysis.
+
+---
+
+## 🔬 Experiment & Analysis: High-Dimensional Parameter Recovery
+### Context & Setup
+The objective was to verify if the optimizer could accurately recover multiple hidden weights ($$W = [2, 3, 4], b = 5$$) from a dataset contaminated with Gaussian noise ($$std=0.5$$).
+* **Hyperparameters:** `epochs = 2000`, `learning_rate = 0.01`, `optimizer = SGD`.
+* **Convergence:** Successfully reached a stable state around **Epoch 400**.
+
+### Key Insights
+
+**1. The "Noise Floor" Phenomenon**
+* **Observation:** Despite 2,000 epochs of training, the loss reached a minimum plateau of **~0.2300** and never hit zero.
+* **Analysis:** This represents the **theoretical limit of error** (Noise Floor). Since we added noise with $$\sigma = 0.5$$, the minimum achievable MSE is approximately $$\sigma^2 = 0.25$$. The model effectively learned 100% of the underlying signal, with the remaining loss being irreducible noise.
+
+**2. Statistical Accuracy in Weights**
+* **Result:** Final learned weights were $$W \approx [1.997, 3.103, 4.007], b \approx 5.092$$.
+* **Analysis:** The slight deviation from the exact integers ($$2, 3, 4$$) is expected due to the stochastic nature of the noise and limited sample size ($$N=100$$). This proves that the model found the **statistically optimal solution** rather than simply memorizing the noisy data points.
+
+**3. Vectorized Data Extraction**
+* **Technique:** Refined the logic for extracting trained parameters based on their dimensionality.
+    * **Scalar Bias ($$b$$):** Used `.item()` for direct conversion to float.
+    * **Weight Vector ($$W$$):** Used `.detach().tolist()` to safely extract the multi-dimensional array while disconnecting it from the Autograd graph to prevent memory overhead.
+
+---
