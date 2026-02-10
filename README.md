@@ -270,3 +270,34 @@ The objective was to verify if the optimizer could accurately recover multiple h
     * **Weight Vector ($$W$$):** Used `.detach().tolist()` to safely extract the multi-dimensional array while disconnecting it from the Autograd graph to prevent memory overhead.
 
 ---
+
+## 12. Dataset & DataLoader: Scalable Data Pipelines (Day 5)
+Transitioned from processing entire datasets in memory to a scalable data pipeline using PyTorch's standardized components.
+
+* **Modular Design:** Subclassed `torch.utils.data.Dataset` to encapsulate data storage (`__init__`), size reporting (`__len__`), and index-based retrieval (`__getitem__`).
+* **Mini-batch Management:** Integrated `DataLoader` to partition 100 samples into batches of size 8, implementing `shuffle=True` to prevent the model from memorizing data order.
+* **Nested Training Loop:** Designed a two-tier loop structure (Epoch and Batch) to enable memory-efficient parameter updates.
+* **Modules:**
+    * `pytorch_practice/day5_dataloader.py`: Implementation of the custom Dataset class and mini-batch training loop.
+
+---
+
+## 🔬 Experiment & Analysis: Mini-batch SGD Convergence
+### Context & Observation
+Analyzed the convergence behavior of Mini-batch Stochastic Gradient Descent (SGD) on a noisy multi-variable dataset.
+* **Setup:** `batch_size = 8`, `learning_rate = 0.01`, `epochs = 100`.
+* **Result:** Successfully reduced the Average Loss from **~55.0** to a stable **~0.0102**.
+
+### Key Insights
+
+**1. The "Invisible Gradient" Incident (Parentheses Syntax)**
+* **Observation:** The loss initially stagnated at ~55 despite the training loop running.
+* **Root Cause Analysis:** `loss.backward` was called without parentheses `()`, meaning the function was referenced but not executed. This prevented gradient computation, leaving weights ($W, b$) static despite calling `optimizer.step()`.
+* **Solution:** Explicitly invoked the function using `loss.backward()` to trigger the autograd engine.
+
+**2. Theoretical Loss Floor Verification**
+* **Analysis:** Since the synthetic data included Gaussian noise with $\sigma = 0.1$, the theoretical minimum MSE is $\sigma^2 = 0.01$.
+* **Conclusion:** The final loss of **0.0102** indicates that the model has perfectly recovered the underlying signal ($W=[2, 3, 4], b=5$), with only the irreducible noise remaining.
+
+**3. Format Specifiers for Log Readability**
+* **Implementation:** Utilized the `:3d` format specifier in f-strings to ensure consistent vertical alignment of epoch logs regardless of the number of digits.
