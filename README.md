@@ -301,3 +301,40 @@ Analyzed the convergence behavior of Mini-batch Stochastic Gradient Descent (SGD
 
 **3. Format Specifiers for Log Readability**
 * **Implementation:** Utilized the `:3d` format specifier in f-strings to ensure consistent vertical alignment of epoch logs regardless of the number of digits.
+
+---
+
+## 13. Non-linearity & Multi-Layer Perceptron (Day 6)
+Overcame the mathematical limitations of linear models by implementing a Multi-Layer Perceptron (MLP) and introducing non-linear activation functions to solve complex decision boundaries.
+
+* **nn.Module Subclassing:** Adopted the standard PyTorch design pattern by subclassing `nn.Module`, ensuring proper parameter registration via `super().__init__()`.
+* **Breaking Linearity:** Introduced `nn.ReLU` and `nn.Sigmoid` between linear layers to prevent "Linear Stacking," where multiple linear layers mathematically collapse into a single transformation.
+* **Refactoring with `nn.Sequential`:** Compared manual layer linking in `forward()` with the more concise `nn.Sequential` container, optimizing code readability for feed-forward architectures.
+* **Modules:**
+    * `pytorch_practice/day6_mlp_xor.py`: Implementation of MLP architectures (V1: Manual, V2: Sequential) for the XOR problem.
+
+---
+
+## 🔬 Experiment & Analysis: Solving the XOR Problem
+### Context & Observation
+The XOR problem is the classic benchmark for non-linearity, as its classes cannot be separated by a single linear hyperplane. The goal was to verify if a 2-layer MLP could distort the input space to achieve perfect classification.
+* **Setup:** `input: 2`, `hidden: 10`, `output: 1`. Used `BCELoss` for binary classification and `lr: 1.0` to handle the small dataset.
+* **Result:** Successfully reached **100.0% Accuracy**. Average Loss dropped from **0.6924** (random guessing) to **0.000038** after 10,000 steps.
+
+### Key Insights
+
+**1. The Chain of Linearity & Activation Functions**
+* **Theory:** Without non-linear activations, $y = W_2(W_1x + b_1) + b_2$ simplifies to $y = W_{new}x + b_{new}$.
+* **Experiment:** Verified that removing `nn.ReLU` causes the accuracy to plateau at **50%**, proving that "Depth" without "Non-linearity" is mathematically equivalent to a single-layer linear model.
+
+**2. Optimization Dynamics: High Learning Rate ($lr=1.0$)**
+* **Analysis:** For extremely small datasets like XOR ($N=4$), the gradient updates are infrequent (once per epoch in full batch).
+* **Strategy:** A high learning rate was essential to escape the flat plateaus (saddle points) of the Sigmoid-based loss landscape. Unlike large-scale datasets where $lr=1.0$ might cause divergence, here it facilitated rapid convergence toward the global minimum.
+
+**3. Binary Cross Entropy (BCE) vs. MSE**
+* **Observation:** Transitioned from `MSELoss` to `BCELoss` for the classification task.
+* **Mechanism:** Combined with a `Sigmoid` output, `BCELoss` penalizes wrong predictions exponentially as they approach the opposite class, providing a much stronger gradient signal for binary outcomes than squared error.
+
+**4. Advanced Tensor Post-processing**
+* **Technique:** Implemented the `.detach().numpy()` chain for result visualization.
+* **Insight:** Mastered the requirement of disconnecting tensors from the autograd graph (`.detach()`) before converting them to NumPy for interoperability with standard Python data tools.
