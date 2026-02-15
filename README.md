@@ -374,3 +374,50 @@ Expanded beyond binary classification to implement a Multi-class Classification 
 **3. Inference Mode & Memory Management**
 * **Technique:** Utilized `with torch.no_grad():` during the testing phase to disable the generation of the computational graph.
 * **Insight:** This minimized memory overhead and accelerated inference. The predicted labels were derived using `.argmax()`, which identifies the index with the highest probability among the 10 classes.
+
+---
+
+## 15. Convolutional Neural Networks (CNN) Deep Dive (Day 8)
+Advanced from simple MLPs to **Convolutional Neural Networks (CNNs)** to effectively capture spatial hierarchies in image data. Conducted a rigorous benchmark study to optimize model architecture using modern deep learning techniques.
+
+* **Architecture Evolution:**
+    * **Basic CNN:** A standard 2-layer structure (`Conv - ReLU - MaxPool` $\times$ 2) to establish a baseline.
+    * **Deep CNN:** A robust 3-layer architecture integrated with **Batch Normalization** and **Dropout** to improve stability and generalization.
+* **Initialization Strategy:** Transitioned from Xavier Initialization (for Sigmoid/Tanh) to **He (Kaiming) Initialization**, which is mathematically optimal for ReLU activation functions.
+* **Modules:**
+    * `pytorch_practice/day8_cnn_comparison.py`: Full implementation of the comparative experiment, including visualization logic.
+
+---
+
+## 🔬 Experiment & Analysis: Architecture & Data Scaling
+### Context & Setup
+The objective was to break the 99% accuracy barrier on the MNIST dataset by overcoming the limitations of shallow networks.
+* **Dataset:** MNIST (Normalized to $[0, 1]$)
+* **Hyperparameters:** `epochs = 15`, `batch_size = 100`, `lr = 0.001` (Adam).
+* **Comparison:**
+    * **Model A (Basic):** Simple Feature Extractor + Classifier.
+    * **Model B (Deep):** Added Depth (3rd Layer), **Batch Normalization** (to fix Internal Covariate Shift), and **Dropout** (p=0.5, for Regularization).
+
+### 📊 Comparative Visualization
+![CNN Comparison](images/pytorch_practice/cnn_comparison_result.png)
+
+### 📈 Quantitative Result
+| Model | Final Cost | Test Accuracy | Error Rate |
+| :--- | :---: | :---: | :---: |
+| **Basic CNN** | 0.0069 | 98.99% | 1.01% |
+| **Deep CNN** | **0.0059** | **99.29%** | **0.71%** |
+
+### Key Insights
+
+**1. The "Silent Killer": Data Scaling Mismatch**
+* **Incident:** Initially, the Deep CNN yielded a disastrous **64% accuracy** despite low training loss.
+* **Root Cause Analysis:** The training data was normalized via `transforms.ToTensor()` ($0 \sim 1$), but the test data was raw pixel values ($0 \sim 255$).
+* **Critical Lesson:** **Batch Normalization** layers are extremely sensitive to input statistics ($\mu, \sigma$). Feeding unscaled data ($255\times$ larger magnitude) during inference completely shattered the learned statistics. Applying `/ 255.0` to the test set immediately restored accuracy to **99.29%**.
+
+**2. The Power of Batch Normalization**
+* **Observation:** As seen in the *Training Cost* graph (Left), the Deep CNN (Orange) starts at a significantly lower cost and converges faster than the Basic CNN (Blue).
+* **Analysis:** BN standardizes the inputs to each layer ($\mu=0, \sigma=1$), preventing gradients from vanishing or exploding. This allowed the model to focus on learning complex features from the very first epoch without wasting time adapting to shifting distributions.
+
+**3. The Weight of 0.3% (Error Rate Reduction)**
+* **Analysis:** While the accuracy difference ($98.99\% \to 99.29\%$) seems small, it represents a **~30% reduction in the Error Rate** ($1.01\% \to 0.71\%$).
+* **Conclusion:** In the high-performance regime (above 98%), marginally increasing accuracy requires exponentially better feature extraction. The combination of **Deeper Layers** (semantic complexity) and **Dropout** (ensemble effect) was necessary to correctly classify the most ambiguous edge cases in MNIST.
