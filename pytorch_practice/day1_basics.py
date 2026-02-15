@@ -12,7 +12,7 @@ print(f"\n1. Tensor 변환 완료:\n{tensor_data}")
 back_to_numpy = tensor_data.numpy() # (pytorch -> numpy)로 재변환
 
 # 2. 모양 바꾸기(reshape 대신 .view 사용)
-mock_image = torch.randn(2, 3, 4, 4) #(N, C, H, W)
+mock_image = torch.randn(2, 3, 4, 4) # (N, C, H, W)
 print(f"\n2. 원본 이미지 모양: {mock_image.shape}") # 원본 이미지 모양 출력
 flattened = mock_image.view(2, -1) # (N, C*H*W)로 flatten
 print(f"\n   펼친 모양: {flattened.shape}")

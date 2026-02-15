@@ -338,3 +338,39 @@ The XOR problem is the classic benchmark for non-linearity, as its classes canno
 **4. Advanced Tensor Post-processing**
 * **Technique:** Implemented the `.detach().numpy()` chain for result visualization.
 * **Insight:** Mastered the requirement of disconnecting tensors from the autograd graph (`.detach()`) before converting them to NumPy for interoperability with standard Python data tools.
+
+---
+
+## 14. Softmax Classification & MNIST (Day 7)
+Expanded beyond binary classification to implement a Multi-class Classification model for the MNIST dataset (0-9 digits).
+
+* **Softmax & Cross Entropy:** Utilized the Softmax function to ensure the sum of output probabilities equals 1, and applied `nn.CrossEntropyLoss` to maximize the predicted probability of the correct class.
+* **Efficient Pipeline:** Implemented `view(-1, 784)` to transform $28 \times 28$ images into 784-dimensional vectors and used the `drop_last=True` option in the DataLoader to ensure batch consistency.
+* **Advanced Optimization:** Transitioned from basic SGD to the **Adam** optimizer, which combines Momentum and RMSProp (Adaptive Learning Rate) for superior performance.
+
+---
+
+## 🔬 Experiment & Analysis: Optimizer Benchmarking (SGD vs. Adam)
+
+### 📊 Comparative Visualization
+![MNIST Loss Comparison](images/pytorch_practice/mnist_loss_comparison.png)
+
+### 📈 Quantitative Result
+| Optimizer | Final Cost | Test Accuracy | Note |
+| :--- | :---: | :---: | :--- |
+| **SGD (lr=0.1)** | 0.0300 | 97.37% | Stable, but convergence is relatively slow. |
+| **Adam (lr=0.001)** | **0.0117** | **97.92%** | **2.5x Cost reduction, 0.55%p Accuracy increase.** |
+
+### Key Insights
+
+**1. Numerical Stability of `nn.CrossEntropyLoss`**
+* PyTorch's `nn.CrossEntropyLoss` internally combines `LogSoftmax` and `NLLLoss`.
+* By passing "Raw Logits" to the loss function instead of manually applying Softmax at the final layer, the model avoids potential **Overflow** during exponential calculations, ensuring numerical stability.
+
+**2. Superior Convergence of Adam**
+* **Observation:** As shown in the graph above, Adam (blue) reached a lower loss plateau much faster than SGD (gray).
+* **Analysis:** The **Adaptive Learning Rate** mechanism, which adjusts the step size for each parameter individually, allowed the model to react more sensitively to critical features in the 784-dimensional MNIST input, effectively navigating the complex loss landscape.
+
+**3. Inference Mode & Memory Management**
+* **Technique:** Utilized `with torch.no_grad():` during the testing phase to disable the generation of the computational graph.
+* **Insight:** This minimized memory overhead and accelerated inference. The predicted labels were derived using `.argmax()`, which identifies the index with the highest probability among the 10 classes.
