@@ -421,3 +421,59 @@ The objective was to break the 99% accuracy barrier on the MNIST dataset by over
 **3. The Weight of 0.3% (Error Rate Reduction)**
 * **Analysis:** While the accuracy difference ($98.99\% \to 99.29\%$) seems small, it represents a **~30% reduction in the Error Rate** ($1.01\% \to 0.71\%$).
 * **Conclusion:** In the high-performance regime (above 98%), marginally increasing accuracy requires exponentially better feature extraction. The combination of **Deeper Layers** (semantic complexity) and **Dropout** (ensemble effect) was necessary to correctly classify the most ambiguous edge cases in MNIST.
+
+---
+
+## 16. Transfer Learning with Pre-trained Models (Day 9)
+Transitioned from training networks from scratch to leveraging massive pre-trained architectures (ResNet-18) via Transfer Learning, solving the critical issue of data scarcity in computer vision tasks.
+
+* **Feature Extractor Freezing:** Frozen the pre-trained weights of the ResNet backbone (`requires_grad = False`) to retain the rich hierarchical features learned from ImageNet, preventing catastrophic forgetting during early training.
+* **Classifier Replacement:** Dynamically extracted the number of input features (`num_ftrs`) and replaced the final Fully Connected (FC) layer to output 2 classes (Ants vs. Bees) instead of the original 1000.
+* **Advanced Data Augmentation:** Implemented a robust `transforms` pipeline including `RandomResizedCrop` and `RandomHorizontalFlip` to artificially expand the highly limited training dataset.
+* **Modules:**
+  * `day9_transfer_learning.py`: Full implementation of the fine-tuning pipeline, custom training loop with model checkpointing, and visualization logic.
+
+---
+
+## 🔬 Experiment & Analysis: Fine-Tuning ResNet-18 on a Micro Dataset
+
+### Context & Setup
+The objective was to evaluate the extreme efficiency of Transfer Learning by fine-tuning a deep CNN on a "micro" dataset that would typically lead to severe overfitting if trained from scratch.
+* **Dataset:** Hymenoptera (Ants vs. Bees)
+  * **Train:** 244 images
+  * **Validation:** 153 images
+* **Hyperparameters:** `epochs = 5`, `batch_size = 4`, `lr = 0.001` (SGD with Momentum 0.9).
+* **Hardware:** Apple Silicon (MPS).
+
+### 📊 Visualizing the Results
+
+**1. Learning Curve & Convergence**
+![Transfer Learning Curve](images/pytorch_practice/day9_learning_curve.png)
+
+**2. Model Prediction Check**
+![Model Predictions](images/pytorch_practice/day9_prediction.png)
+
+### 📈 Quantitative Result
+
+| Model | Pre-trained | Train Size | Training Time | Best Val Accuracy |
+| :--- | :---: | :---: | :---: | :---: |
+| **ResNet-18 (Fine-tuned)** | Yes (ImageNet) | 244 | **~15 secs** | **94.77%** |
+
+### Key Insights
+
+**1. The "Reversed" Learning Curve Phenomenon**
+* **Observation:** As seen in the Learning Curve graph, the Validation Accuracy (Orange) starts significantly higher than the Training Accuracy (Purple).
+* **Analysis:** This counter-intuitive result is caused by **Data Augmentation** and **Pre-trained Knowledge**. The training set is heavily distorted (`RandomResizedCrop`, flips) making classification artificially difficult. Conversely, the validation set is cleanly center-cropped, allowing the already-smart ResNet backbone to easily classify the inputs from Epoch 1.
+
+**2. Apple Silicon (MPS) Architecture Constraints**
+* **Incident:** Encountered a `TypeError` during accuracy calculation: *"Cannot convert a MPS Tensor to float64 dtype as the MPS framework doesn't support float64."*
+* **Solution:** Identified that Apple's Metal Performance Shaders (MPS) currently lack native support for 64-bit precision (`.double()`). Explicitly downcasted the correct predictions tensor to 32-bit precision using `.float()` before division, successfully enabling GPU acceleration on the Mac environment.
+
+**3. State Dictionary & Memory Isolation (`copy.deepcopy`)**
+* **Observation:** In Stochastic Gradient Descent with small datasets, validation loss often fluctuates, meaning the final epoch's model is rarely the optimal one.
+* **Implementation:** Designed a checkpointing logic inside the training loop to capture the weights (`model.state_dict()`) whenever a new highest validation accuracy is achieved.
+* **Insight:** Crucially utilized `copy.deepcopy()` to physically isolate the saved weights in memory. Using a shallow copy (assignment) would result in the "best" weights being continuously overwritten by subsequent suboptimal updates due to PyTorch's reference-based memory management.
+
+**4. Inverse Normalization for Visualization**
+* **Technique:** To visualize the tensor predictions back as raw images, implemented an `Un-normalize` pipeline.
+* **Mechanism:** Re-applied the ImageNet statistics by multiplying the standard deviation (`std * img`) and adding the mean (`+ mean`), followed by `np.clip(img, 0, 1)` to handle overflow. This restored the distorted tensors into mathematically correct RGB color spaces for human-readable output.
