@@ -477,3 +477,59 @@ The objective was to evaluate the extreme efficiency of Transfer Learning by fin
 **4. Inverse Normalization for Visualization**
 * **Technique:** To visualize the tensor predictions back as raw images, implemented an `Un-normalize` pipeline.
 * **Mechanism:** Re-applied the ImageNet statistics by multiplying the standard deviation (`std * img`) and adding the mean (`+ mean`), followed by `np.clip(img, 0, 1)` to handle overflow. This restored the distorted tensors into mathematically correct RGB color spaces for human-readable output.
+
+---
+
+## 17. 3D Vision: Monocular Depth Estimation (Day 11)
+Transitioned from 2D image processing to **3D Scene Understanding** by implementing Monocular Depth Estimation, which extracts spatial depth information from a single RGB image.
+
+* **Pre-trained Model:** Leveraged Intel Labs' **MiDaS (v2.1 Small)** to achieve near real-time inference on consumer-grade hardware.
+* **Image Pipeline:** Optimized the input flow using OpenCV for BGR-to-RGB correction and the `small_transform` pipeline to ensure tensor compatibility ($256 \times 256$) for the model's mathematical constraints.
+* **Tensor Manipulation:** Utilized `unsqueeze(1)` and `interpolate` operations to restore the low-resolution depth output back to the original image dimensions via sophisticated upsampling techniques.
+
+---
+
+## 🔬 Experiment & Analysis: AI Monocular Depth Perception
+### Context & Observation
+To analyze how the AI perceives spatial distance, a close-up still-life photo (Sushi) was used as the primary input.
+* **Setup:** Loaded the `MiDaS_small` model and applied the specific `transforms` required for monocular depth inference.
+* **Result:** Generated a high-fidelity **Depth Map** where proximal objects (sushi) are represented with high intensity (white) and distal backgrounds are represented with low intensity (black).
+
+### Key Insights
+**1. Semantic Spatial Linearity**
+The AI does not rely solely on pixel brightness; it understands **semantic structures**. The smooth gradient transition from the foreground sushi to the background water glass demonstrates the model's ability to maintain spatial continuity across the scene.
+
+**2. Impact of Bicubic Interpolation**
+When upsampling the $256 \times 256$ output to match the original resolution, **Bicubic mode** was utilized. Unlike `Nearest` neighbor upsampling, this method calculates neighboring 픽셀을 mathematically to suppress aliasing, ensuring a natural transition at the depth boundaries.
+
+![Depth Result](/images/3d_vision/result_depth.png)
+
+---
+
+## 18. Digital Portrait Mode Implementation
+Implemented a digital **Portrait Mode** (Bokeh effect) by using the extracted depth map as a mathematical **Alpha Channel** to blend sharp and blurred image layers.
+
+* **Gaussian Blur:** Applied a spatial smoothing operation using a Gaussian distribution with a $(71 \times 71)$ kernel.
+* **Mathematical Blending:** Performed a pixel-wise **Alpha Blending** (Hadamard Product) between the original image ($I_{orig}$) and the blurred image ($I_{blur}$) based on the depth mask ($M$).
+
+---
+
+## 🔬 Experiment & Analysis: Alpha Blending & Kernel Dynamics
+### Context & Setup
+Conducted hyperparameter tuning to minimize visual artifacts and simulate the optical bokeh characteristic of high-end DSLR lenses.
+* **Algorithm:** $$Output = (M \odot I_{orig}) + ((1 - M) \odot I_{blur})$$
+* **Hyperparameters:** `ksize = (71, 71)`, `sigma = 0`.
+
+### Key Insights
+**1. Min-Max Mask Normalization**
+As the model output consists of arbitrary depth values, applying **Min-Max Scaling** to the range $[0.0, 1.0]$ was critical. This transformed the raw depth matrix into a probabilistic weight map, determining exactly what percentage of the original pixel should be preserved vs. blurred.
+
+**2. Kernel Size and Visual Thresholds**
+Experiments showed that a kernel size of `71` provided a significantly more pronounced "Bokeh" effect compared to `51`, effectively isolating the subject from the background. The use of an odd-sized kernel ensures a symmetrical central pixel, which is essential for accurate spatial scattering simulation.
+
+**3. Anisotropic Dimension Expansion**
+Used `np.expand_dims` and `np.repeat` to align the 2D depth mask with the 3D RGB image. This serves as a practical application of **NumPy Broadcasting** principles to optimize image synthesis pipelines.
+
+![Portrait Result](/images/3d_vision/result_portrait.png)
+
+---
