@@ -533,3 +533,37 @@ Used `np.expand_dims` and `np.repeat` to align the 2D depth mask with the 3D RGB
 ![Portrait Result](/images/3d_vision/result_portrait.png)
 
 ---
+
+## 19. Object Detection with Faster R-CNN (Day 12)
+Transitioned from image classification and monocular depth estimation to **Object Detection**, a comprehensive vision task that simultaneously predicts object locations (Localization via Bounding Boxes) and their categories (Classification).
+
+* **Pre-trained Architecture:** Utilized `fasterrcnn_resnet50_fpn` from `torchvision`, leveraging weights pre-trained on the COCO dataset (capable of detecting 91 object categories).
+* **Format Interoperability:** Bridged the gap between OpenCV (`NumPy ndarray`, BGR) and PyTorch's native preprocessing pipeline by converting frames to `PIL Image` format, ensuring the model's specific normalization and scaling transforms were correctly applied to high-resolution inputs ($4000 \times 3000$).
+* **Post-processing & Visualization:** Implemented confidence thresholding to filter raw tensor outputs and utilized OpenCV (`cv2.rectangle`, `cv2.putText`) to mathematically map bounding box coordinates back onto the original image.
+
+---
+
+## 🔬 Experiment & Analysis: High-Resolution Object Detection
+### Context & Setup
+Evaluated the Faster R-CNN model on a custom, high-resolution ($4000 \times 3000$) real-world image containing overlapping objects (laptop, mouse, tumbler, background chairs).
+* **Algorithm Pipeline:** OpenCV (Read) $\to$ PIL (Transform) $\to$ PyTorch (Inference) $\to$ Thresholding ($> 0.8$) $\to$ OpenCV (Render).
+* **Result:** Filtered 52 raw region proposals down to 8 highly accurate bounding boxes.
+
+### Key Insights
+**1. Domain Limitation and Semantic Matching (The "Sushi" Anomaly)**
+* **Observation:** When initially tested on a photo of sushi, the model confidently classified the objects as `bowl` or `cup`.
+* **Analysis:** The COCO dataset does not contain a 'sushi' class. Rather than failing, the model mapped the visual features to the closest morphological equivalents in its 91-word vocabulary. This highlights that an AI's operational boundary is strictly confined by its training domain data, necessitating Fine-tuning for specialized tasks.
+
+**2. Boolean Indexing for False Positive Suppression**
+* **Observation:** The raw inference yielded 52 bounding boxes, many of which were low-confidence noise or duplicates.
+* **Implementation:** Applied a Boolean mask (`keep_indices = scores > 0.8`) to slice the `boxes`, `labels`, and `scores` tensors simultaneously. This vectorized thresholding effectively eliminated False Positives without the need for slow, iterative loops. (Note: Internal overlaps were already resolved by the model's native Non-Maximum Suppression (NMS) layer).
+
+**3. Feature Robustness on Out-of-focus Objects**
+* **Result:** The model successfully detected and classified a `laptop` (99.93%) and `mouse` (99.83%) in the foreground, while also detecting `chairs` (~98.9%) in the background.
+* **Analysis:** Despite the background chairs being heavily blurred (optical bokeh), the ResNet50 backbone coupled with the Feature Pyramid Network (FPN) demonstrated exceptional spatial feature extraction capabilities, proving that Deep CNNs can recognize structural semantics even when high-frequency details (sharp edges) are lost.
+
+**4. Coordinate Systems and BGR Rendering Matrix**
+* **Technique:** Rendered bounding boxes using `(0, 255, 0)` and adjusted text placement to `(x1, y1 - 10)`.
+* **Analysis:** Unlike standard RGB, OpenCV operates in a **BGR** color space, making `(0, 255, 0)` pure green. Furthermore, because computer vision coordinate systems place the origin $(0,0)$ at the **Top-Left**, subtracting from the $y$-coordinate moves the text *upwards*, preventing the label from obscuring the bounding box stroke.
+
+![Object Detection Result](images/object_detection/result_macbook.jpg)
