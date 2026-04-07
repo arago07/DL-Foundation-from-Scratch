@@ -567,3 +567,42 @@ Evaluated the Faster R-CNN model on a custom, high-resolution ($4000 \times 3000
 * **Analysis:** Unlike standard RGB, OpenCV operates in a **BGR** color space, making `(0, 255, 0)` pure green. Furthermore, because computer vision coordinate systems place the origin $(0,0)$ at the **Top-Left**, subtracting from the $y$-coordinate moves the text *upwards*, preventing the label from obscuring the bounding box stroke.
 
 ![Object Detection Result](images/object_detection/result_macbook.jpg)
+
+---
+
+## 20. Semantic Segmentation (Day 13)
+### Improved Version: Ablation Study on Model & Domain Shift
+
+To overcome the limitations found in the baseline (incorrect labels and orientation issues), a three-step ablation study was conducted to find the optimal configuration for an XR-based environment.
+
+### Experiment 1: Orientation Correction (DeepLabV3 - PASCAL VOC)
+* **Conditions:** Fixed image orientation (Portrait) + Baseline DeepLabV3 (21 classes).
+* **Original Baseline (Wrong Orientation)**
+<img src="./images/semantic_segmentation/result_deeplabv3.png" width="500px">
+
+* **Experiment 1 Result (Fixed Orientation)**
+<img src="./images/semantic_segmentation/result_deeplabv3_rotated.png" width="500px">
+
+* **Result:** Significantly improved segmentation of background objects (Chairs, Person, Table). The model showed **exceptional edge precision**, tracing the curves of the furniture and legs accurately.
+* **Limitation:** Due to the limited 21 classes of PASCAL VOC, modern office objects like 'Laptop' and 'Mouse' were still misclassified as 'Dining Table'.
+
+### Experiment 2: Model & Domain Shift (Mask R-CNN - COCO, Threshold 0.7)
+* **Conditions:** Switched to Mask R-CNN with COCO weights (80 classes) to detect office-specific objects.
+<img src="./images/semantic_segmentation/result_maskrcnn_coco_rotated.png" width="500px">
+
+* **Result:** Successfully identified the 'Tumbler' (Cup) and separated the user's legs as distinct instances.
+* **Challenge (The Egocentric Trap):** Discovered the **"Slime Effect"** where masks bled into the background. Since the model was trained on 3rd-person views (Exocentric), the distorted 1st-person (Egocentric) view caused Bounding Box failures, leading to blurred and imprecise edges compared to DeepLabV3.
+
+### Experiment 3: Threshold Tuning (Confidence 0.7 → 0.5)
+* **Conditions:** Lowered the confidence threshold to 0.5 to retrieve the missing 'Laptop'.
+<img src="./images/semantic_segmentation/result_maskrcnn_coco_rotated_lower_threshold.png" width="500px">
+
+* **Result:** Failed to detect the laptop. Instead, it introduced **Rendering Glitches**.
+* **Insight:** Lowering the threshold allowed multiple low-confidence, overlapping masks to survive. This caused a "XOR-like" rendering error where mask interiors appeared hollow or fragmented, proving that threshold adjustment is not a substitute for domain-specific fine-tuning.
+
+---
+
+### 💡 Key Insights & Future Work
+1.  **Semantic vs. Instance for XR:** For "Occlusion" effects in XR, **DeepLabV3 (Semantic)**'s pixel-level edge precision is more desirable than Mask R-CNN's box-dependent masks, even if it lacks instance separation.
+2.  **Egocentric Vision Gap:** Standard COCO-trained models struggle with the unique geometry of 1st-person views (truncated limbs, skewed table angles). 
+3.  **Next Step:** Future experiments should focus on **Fine-tuning** a semantic segmentation model with an egocentric dataset rather than simply switching to a larger exocentric model.
